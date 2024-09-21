@@ -31,11 +31,10 @@ export const signup = async (req, res) => {
       verificationToken,
       verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
     });
-    
+
     await user.save();
-    
+
     console.log("User saved:", user); // Log the user object after saving
-    
 
     //jwt
     generateTokenAndSetCookie(res, user._id);
@@ -53,7 +52,6 @@ export const signup = async (req, res) => {
   } catch (error) {
     return res.status(400).json({ succuess: false, message: error.message });
   }
-  
 };
 
 export const verifyEmail = async (req, res) => {
@@ -64,7 +62,7 @@ export const verifyEmail = async (req, res) => {
       verificationToken: code,
       verificationTokenExpiresAt: { $gt: Date.now() },
     });
-    console.log(user)
+    //console.log(user)
 
     if (!user) {
       return res.status(400).json({
@@ -78,8 +76,8 @@ export const verifyEmail = async (req, res) => {
 
     user.isVerified = true;
     user.verificationToken = undefined;
-    user.verificationTokenExpiresAt=undefined; 
-    
+    user.verificationTokenExpiresAt = undefined;
+
     await user.save();
 
     await sendWelcomeEmail(user.email, user.name);
@@ -93,17 +91,45 @@ export const verifyEmail = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.log("error in verifyEmail ", error);
+    res.status(500).json({ success: false, message: "server error" });
+  }
+};
+
+export const login = async (req, res) => {
+  const { email, password } = req.body; // Corrected "passowrd" to "password"
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const isPasswordValid = await bycrypt.compare(password, user.password); // Corrected "bycrypt" and "passowrd"
+    if (!isPasswordValid) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
+
+    generateTokenAndSetCookie(res, user._id);
+    user.lastLogin = new Date();
+    await user.save();
+
+    res.status(200).json({ // Changed status to 200
+      success: true, // Corrected "succuess" to "success"
+      message: "User logged in successfully", // Corrected "loged" to "logged"
+      user: {
+        ...user._doc,
+        password: undefined,
+      },
+    });
+  } catch (error) {
+    console.log("Error in login", error);
+    return res.status(400).json({ success: false, message: error.message });
   }
 };
 
 
-
-export const login = async (req, res) => {
-  res.send("Login page");
-};
-
 export const logout = async (req, res) => {
-  res.send("Logout page");
+  res.clearCookie("token");
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 };
-
