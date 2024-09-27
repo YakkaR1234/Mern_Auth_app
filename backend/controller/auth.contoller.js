@@ -1,9 +1,9 @@
-import { generateKey } from "crypto";
 import { User } from "../model/user.model.js";
 import bycrypt from "bcryptjs";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import { send } from "process";
-import { sendVerificationEmail, sendWelcomeEmail } from "../mailtrap/emails.js";
+import { sendPassowordRestEmail, sendResetSuccessEmail, sendVerificationEmail, sendWelcomeEmail } from "../mailtrap/emails.js";
+import crypto from "crypto"
 
 export const signup = async (req, res) => {
   const { email, password, name } = req.body;
@@ -133,3 +133,86 @@ export const logout = async (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ success: true, message: "Logged out successfully" });
 };
+
+export const forgotPassword=async (req,res)=>{
+  const {email}=req.body;
+  try{
+    const user=await User.findOne({email});
+    if (!user){
+      return res.status(400).json({success:false,message:"User not found"});
+    }
+
+    const resetToken=crypto.randomBytes(20).toString("hex");
+    const resetTokeneExpireAt=Date.now()+1*60*60*1000;
+
+    user.resetPasswordToken=resetToken;
+    user.resetPasswordExpiresAt=resetTokeneExpireAt;
+    await user.save();
+
+    await sendPassowordRestEmail(user.email,`${process.env.CLIENT_URL}/reset-passwrod/${resetToken}`);
+    res.status(200).json({success:true,message:"Passowrd reset link reset  to your email"});
+
+  }catch(error)
+  {
+    console.log("Error in forgetpassword ",error);
+    res.status(400).json({success:false,message:error.message});
+
+  }
+}
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    // Find user by token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiresAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired reset token" });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bycrypt.hash(password, 10);
+
+    // Update user's password and reset token fields
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresAt = undefined;
+    await user.save();
+
+    // Send success email
+    await sendResetSuccessEmail(user.email);
+
+    // Respond with success message
+    res.status(200).json({ success: true, message: "Password reset successful" });
+  } catch (error) {
+    // Log the full error
+    console.error("Error in resetPassword:", error);
+
+    // Respond with the error
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: error.message, // Include the error message in the response
+    });
+  }
+};
+
+export const checkAuth=async(req,res)=>{
+  try {
+    const user=await User.findById(req.userId).select("-password");
+    if(!user){
+      return res.status(400).json({success: false, message: "user not found"})
+    }
+    res.status(200).json({success:true,user})
+  } catch (error) {
+    return res.status(400).json({success: false, message:error.message})
+
+  }
+}
