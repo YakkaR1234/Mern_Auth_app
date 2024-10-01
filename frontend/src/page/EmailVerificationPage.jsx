@@ -9,7 +9,7 @@ const EmailVerificationPage = () => {
   const isLoading=false;
 
 
-  const handleSubmit=()=>{
+  const handleSubmit=(e)=>{
     e.preventDefault();
 		const verificationCode = code.join("");
 
