@@ -6,7 +6,7 @@ import { User, Mail, Lock, Loader } from "lucide-react";
 import Input from "../components/Input";
 import { Link, useNavigate } from "react-router-dom";
 import PasswordStrengthMeter from "../components/PassowrdStrenghtMeter";
-import { useAuthStore } from "../../store/useAuthStore";
+import { useAuthStore } from "../store/useAuthStore";
 
 const SignupPage = () => {
   const [name, setName] = useState("");
@@ -80,7 +80,7 @@ const SignupPage = () => {
             ) : (
               "Sign Up"
             )}
-            Sign up
+           
           </motion.button>
         </form>
 

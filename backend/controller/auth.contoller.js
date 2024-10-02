@@ -20,9 +20,7 @@ export const signup = async (req, res) => {
     }
 
     const hashedPassword = await bycrypt.hash(password, 10);
-    const verificationToken = Math.floor(
-      1000 + Math.random() * 90000
-    ).toString();
+    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString()
 
     const user = new User({
       email,
@@ -149,7 +147,7 @@ export const forgotPassword=async (req,res)=>{
     user.resetPasswordExpiresAt=resetTokeneExpireAt;
     await user.save();
 
-    await sendPassowordRestEmail(user.email,`${process.env.CLIENT_URL}/reset-passwrod/${resetToken}`);
+    await sendPassowordRestEmail(user.email,`${process.env.CLIENT_URL}/reset-password/${resetToken}`);
     res.status(200).json({success:true,message:"Passowrd reset link reset  to your email"});
 
   }catch(error)
